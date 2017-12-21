@@ -1,0 +1,103 @@
+Public newSheetName As String
+
+Public Sub createNewSheet()
+    newSheetName = "Trade Movement sheet"
+    Sheets.Add(, Sheets(Sheets.Count)).name = newSheetName
+End Sub
+
+Sub copyCloumnsFromRawSheet()
+    
+    Dim rawCptySheet As Worksheet
+    Dim targetSheet As Worksheet
+    Dim copyColumnList As Variant
+    Set rawCptySheet = Sheets("Sheet1")
+    Set targetSheet = Sheets("Sheet2")
+    copyColumnList = Array("Transaction Id", "Trade Id", "Keyword", "Trade Date", "Book", "CounterParty", "Ccy")
+    Dim payerIndex As Long
+    Dim receiverIndex As Long
+    payerIndex = 0
+    receiverIndex = 0
+    
+    Dim columnLength As Long
+    columnLength = rawCptySheet.Cells(1, Columns.Count).End(xlToLeft).Column
+    
+    Dim i As Long
+    For i = 1 To columnLength
+        If rawCptySheet.Cells(1, i) = "Payer" Then
+            payerIndex = i
+        ElseIf rawCptySheet.Cells(1, i) = "Receiver" Then
+            receiverIndex = i
+        End If
+    Next i
+     
+    mergeCloumns rawCptySheet, payerIndex, receiverIndex, columnLength + 1
+    For i = 1 To columnLength + 1
+        Dim newSheetIndex As Long
+        newSheetIndex = arrayIndex(rawCptySheet.Cells(1, i), copyColumnList)
+        If newSheetIndex > 0 Then
+           rawCptySheet.Columns(i).Copy Destination:=targetSheet.Columns(newSheetIndex)
+           targetSheet.Columns(newSheetIndex).ColumnWidth = 15
+           targetSheet.Columns(newSheetIndex).HorizontalAlignment = xlCenter
+           targetSheet.Rows(1).Font.Bold = True
+        End If
+    Next i
+    rawCptySheet.Columns(columnLength + 1).EntireColumn.Delete
+    Dim newBookName As String
+    newBookName = InputBox("Input the name of new counterparty", "Mark out the trades needs to be cancelled out", "")
+    Dim BookIndexInCopyColumnList As Long
+    BookIndexInCopyColumnList = arrayIndex("Book", copyColumnList)
+    
+    'targetSheet.Columns("A:C").Interior.Color = RGB(255, 0, 0)
+    
+    Dim rowNum As Long
+    rowNum = targetSheet.Cells(Rows.Count, 1).End(xlUp).row
+    For i = 2 To rowNum
+        If targetSheet.Cells(i, BookIndexInCopyColumnList) = newBookName Then
+            'targetSheet.Cells(i, 1) = "test"
+            'targetSheet.Columns("A:C").Interior.Color = RGB(255, 0, 0)
+            targetSheet.range(Cells(i, LBound(copyColumnList) + 1), Cells(i, UBound(copyColumnList) + 1)).Interior.Color = RGB(255, 0, 0)
+        End If
+    Next i
+    'MsgBox payerIndex
+    'MsgBox receiverIndex
+End Sub
+
+Public Function arrayIndex(stringToBeFound As String, arr As Variant) As Long
+    Dim i As Long
+    For i = LBound(arr) To UBound(arr)
+        If arr(i) = stringToBeFound Then
+            arrayIndex = i + 1
+            Exit Function
+        End If
+    Next i
+    arrayIndex = -1
+
+End Function
+
+Public Function findElementColumnByValue(sheet As Worksheet, arr As Variant)
+    For Each element In arr
+        Dim r As range
+        Set r = sheet.Cells.Find(element)
+        Dim address As String
+        address = Split(r.address(External:=True), "$")(1)
+        MsgBox address
+    Next element
+End Function
+
+Public Function mergeCloumns(sheet As Worksheet, firstColumn As Long, secondColumn As Long, mergedColumn As Long)
+    Dim range As range
+    Set range = sheet.UsedRange
+    Dim rowNum As Long
+    rowNum = sheet.Cells(Rows.Count, 1).End(xlUp).row
+    sheet.Cells(1, mergedColumn) = "CounterParty"
+    Dim i As Long
+    For i = 2 To rowNum
+        If sheet.Cells(i, firstColumn) = "TCU" Then
+            sheet.Cells(i, mergedColumn) = sheet.Cells(i, secondColumn)
+        Else
+            sheet.Cells(i, mergedColumn) = sheet.Cells(i, firstColumn)
+        End If
+    Next i
+End Function
+
+
