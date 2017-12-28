@@ -1,103 +1,277 @@
-Public newSheetName As String
+Public newBookName As String
 
-Public Sub createNewSheet()
-    newSheetName = "Trade Movement sheet"
-    Sheets.Add(, Sheets(Sheets.Count)).name = newSheetName
+Sub CleanTradInfo()
+    Dim rawSheet As Worksheet
+    Dim targetSheet As Worksheet
+    Set rawSheet = Sheets("Sheet1")
+    Set targetSheet = Sheets("Sheet3")
+    targetSheet.Cells.ClearContents
+    
+    ' A List of Columns that should be kept from raw file to newly generated file
+    Dim usefulColumnList As Variant
+    usefulColumnList = Array("Transaction Id", "Trade Id")
+    
+    ' Get the column length of the raw sheet
+    Dim columnLength As Long
+    columnLength = rawSheet.Cells(1, Columns.Count).End(xlToLeft).Column
+    
+    ' Get the row length of the raw sheet
+    Dim rowNum As Long
+    rowNum = rawSheet.Cells(Rows.Count, 1).End(xlUp).row
+    
+    ' Keep the column index of marketwire in order to retrieve the info of marketwire info
+    Dim marketWireIndex As Long
+    ' Keep the column index of remark in order to retrieve the trioptima info
+    Dim remarkIndex As Long
+    
+    ' Get the new book Name
+    targetSheet.Activate
+    If newBookName = "" Then
+        newBookName = InputBox("Input the name of new counterparty", "Mark out the trades needs to be cancelled out", newBookName)
+    End If
+    
+    ' Copy the same useful columns from raw sheet to new sheet
+    copyColumnListFromRawSheetToTargetSheet rawSheet, targetSheet, rowNum, usefulColumnList
+    
+    ' Generate a new book column
+    generateExtraColumn targetSheet, rowNum, newBookName, "New Book"
+    
+    ' generate the marketwire info to the target sheet
+    marketWireIndex = getColumnIndexByName(rawSheet, "Markitwire Id")
+    If marketWireIndex > 0 Then
+        getMarketWireColumn targetSheet, rawSheet, marketWireIndex, rowNum
+    End If
+    
+    generateExtraColumn targetSheet, rowNum, "0", "Mirror"
+    
+    remarkIndex = getColumnIndexByName(rawSheet, "Remark")
+    If remarkIndex > 0 Then
+        getTriOptimaColumn targetSheet, rawSheet, remarkIndex, rowNum
+    End If
+    
 End Sub
 
-Sub copyCloumnsFromRawSheet()
+
+Sub getCounterPartyList()
     
-    Dim rawCptySheet As Worksheet
+    Dim rawSheet As Worksheet
     Dim targetSheet As Worksheet
     Dim copyColumnList As Variant
-    Set rawCptySheet = Sheets("Sheet1")
-    Set targetSheet = Sheets("Sheet2")
-    copyColumnList = Array("Transaction Id", "Trade Id", "Keyword", "Trade Date", "Book", "CounterParty", "Ccy")
+    Set rawSheet = Sheets("Sheet2")
+    Set targetSheet = Sheets("Sheet4")
+    
+    targetSheet.Cells.ClearContents
+    targetSheet.Cells.Interior.Color = xlNone
+    copyColumnList = Array("Transaction Id", "Trade Id", "Keyword", "Trade Date", "Ccy", "Book")
     Dim payerIndex As Long
     Dim receiverIndex As Long
     payerIndex = 0
     receiverIndex = 0
     
+    deleteEmptyColumnsAndRows rawSheet
     Dim columnLength As Long
-    columnLength = rawCptySheet.Cells(1, Columns.Count).End(xlToLeft).Column
-    
-    Dim i As Long
-    For i = 1 To columnLength
-        If rawCptySheet.Cells(1, i) = "Payer" Then
-            payerIndex = i
-        ElseIf rawCptySheet.Cells(1, i) = "Receiver" Then
-            receiverIndex = i
-        End If
-    Next i
-     
-    mergeCloumns rawCptySheet, payerIndex, receiverIndex, columnLength + 1
-    For i = 1 To columnLength + 1
-        Dim newSheetIndex As Long
-        newSheetIndex = arrayIndex(rawCptySheet.Cells(1, i), copyColumnList)
-        If newSheetIndex > 0 Then
-           rawCptySheet.Columns(i).Copy Destination:=targetSheet.Columns(newSheetIndex)
-           targetSheet.Columns(newSheetIndex).ColumnWidth = 15
-           targetSheet.Columns(newSheetIndex).HorizontalAlignment = xlCenter
-           targetSheet.Rows(1).Font.Bold = True
-        End If
-    Next i
-    rawCptySheet.Columns(columnLength + 1).EntireColumn.Delete
-    Dim newBookName As String
-    newBookName = InputBox("Input the name of new counterparty", "Mark out the trades needs to be cancelled out", "")
-    Dim BookIndexInCopyColumnList As Long
-    BookIndexInCopyColumnList = arrayIndex("Book", copyColumnList)
-    
-    'targetSheet.Columns("A:C").Interior.Color = RGB(255, 0, 0)
-    
+    columnLength = rawSheet.Cells(1, Columns.Count).End(xlToLeft).Column
     Dim rowNum As Long
-    rowNum = targetSheet.Cells(Rows.Count, 1).End(xlUp).row
+    rowNum = rawSheet.Cells(Rows.Count, 1).End(xlUp).row
+    
+    ' The payer and receiver info is used for getting counterparty info
+    If getColumnIndexByName(rawSheet, "Payer") > 0 Then
+        payerIndex = getColumnIndexByName(rawSheet, "Payer")
+    End If
+    If getColumnIndexByName(rawSheet, "Receiver") > 0 Then
+        receiverIndex = getColumnIndexByName(rawSheet, "Receiver")
+    End If
+    
+    targetSheet.Activate
+    If newBookName = "" Then
+        newBookName = InputBox("Input the name of new counterparty", "Mark out the trades needs to be cancelled out", newBookName)
+    End If
+     
+    copyColumnListFromRawSheetToTargetSheet rawSheet, targetSheet, rowNum, copyColumnList
+     
+    mergeCounterpartyCloumns rawSheet, targetSheet, rowNum, payerIndex, receiverIndex
+    
+    Dim targetSheetBookIndex As Long
+    targetSheetBookIndex = getColumnIndexByName(targetSheet, "Book")
+    Dim targetSheetColumnLength As Long
+    targetSheetColumnLength = targetSheet.Cells(1, Columns.Count).End(xlToLeft).Column
+    
+    ' To set the background of trades need to be cancelled out.
     For i = 2 To rowNum
-        If targetSheet.Cells(i, BookIndexInCopyColumnList) = newBookName Then
-            'targetSheet.Cells(i, 1) = "test"
-            'targetSheet.Columns("A:C").Interior.Color = RGB(255, 0, 0)
-            targetSheet.range(Cells(i, LBound(copyColumnList) + 1), Cells(i, UBound(copyColumnList) + 1)).Interior.Color = RGB(255, 0, 0)
+        If targetSheet.Cells(i, targetSheetBookIndex) = newBookName Then
+            targetSheet.range(targetSheet.Cells(i, 1), targetSheet.Cells(i, targetSheetColumnLength)).Interior.Color = RGB(255, 0, 0)
         End If
     Next i
-    'MsgBox payerIndex
-    'MsgBox receiverIndex
+
 End Sub
 
-Public Function arrayIndex(stringToBeFound As String, arr As Variant) As Long
+
+
+' Merge the payer and receiver to get the counterparty information
+Public Function mergeCounterpartyCloumns(rawSheet As Worksheet, targetSheet As Worksheet, rowNum As Long, firstColumn As Long, secondColumn As Long)
+    Dim columnLength As Long
+    columnLength = targetSheet.Cells(1, Columns.Count).End(xlToLeft).Column
+    Dim newSheetIndex As Long
+    newSheetIndex = columnLength + 1
+    
+    targetSheet.Cells(1, newSheetIndex) = "CounterParty"
+
+    Dim i As Long
+    For i = 2 To rowNum
+        If rawSheet.Cells(i, firstColumn) = "TCU" Then
+            targetSheet.Cells(i, newSheetIndex) = rawSheet.Cells(i, secondColumn)
+        Else
+            targetSheet.Cells(i, newSheetIndex) = rawSheet.Cells(i, firstColumn)
+        End If
+    Next i
+End Function
+
+
+
+' This function is to identify the trade is a trioptima trade or not
+' If the remark includes "TriOptima" or "trireduce",
+
+Public Function getTriOptimaColumn(sheet As Worksheet, rawSheet As Worksheet, index As Long, rowNum As Long)
+    Dim columnLength As Long
+    columnLength = sheet.Cells(1, Columns.Count).End(xlToLeft).Column
+    
+    sheet.Cells(1, columnLength + 1) = "TriOptima"
+    Dim i As Long
+    For i = 2 To rowNum
+        If InStr(1, LCase(rawSheet.Cells(i, index)), "trioptima") > 0 Then
+            sheet.Cells(i, columnLength + 1) = 1
+        ElseIf InStr(1, LCase(rawSheet.Cells(i, index)), "trireduce") > 0 Then
+            sheet.Cells(i, columnLength + 1) = 1
+        Else
+            sheet.Cells(i, columnLength + 1) = 0
+        End If
+    Next i
+    sheet.Columns(columnLength + 1).ColumnWidth = 15
+    sheet.Columns(columnLength + 1).HorizontalAlignment = xlCenter
+End Function
+
+' This function is to get the marketwire information by check the marketwire id is empty or not
+Public Function getMarketWireColumn(sheet As Worksheet, rawSheet As Worksheet, index As Long, rowNum As Long)
+    Dim columnLength As Long
+    columnLength = sheet.Cells(1, Columns.Count).End(xlToLeft).Column
+    
+    sheet.Cells(1, columnLength + 1) = "MarketWire"
+    Dim i As Long
+    For i = 2 To rowNum
+        If rawSheet.Cells(i, index) <> "" Then
+            sheet.Cells(i, columnLength + 1) = 1
+        Else
+            sheet.Cells(i, columnLength + 1) = 0
+        End If
+    Next i
+    sheet.Columns(columnLength + 1).ColumnWidth = 15
+    sheet.Columns(columnLength + 1).HorizontalAlignment = xlCenter
+End Function
+
+' This fuction is used to add some extra new column like "mirror"
+Public Function generateExtraColumn(sheet As Worksheet, rowNum As Long, value As String, headName As String)
+    
+    Dim columnLength As Long
+    columnLength = sheet.Cells(1, Columns.Count).End(xlToLeft).Column
+    
+    sheet.Cells(1, columnLength + 1) = headName
+    
+    For i = 2 To rowNum
+        sheet.Cells(i, columnLength + 1) = value
+    Next i
+    sheet.Columns(columnLength + 1).ColumnWidth = 15
+    sheet.Columns(columnLength + 1).HorizontalAlignment = xlCenter
+End Function
+
+Sub setBookName()
+    newBookName = InputBox("Input the name of new counterparty", "Mark out the trades needs to be cancelled out", newBookName)
+End Sub
+
+' This function is to copy a list of columns from raw sheet to a new sheet
+Public Function copyColumnListFromRawSheetToTargetSheet(rawSheet As Worksheet, targetSheet As Worksheet, rowNum As Long, arr As Variant)
+ 
+    Dim columnIndex As Long
     Dim i As Long
     For i = LBound(arr) To UBound(arr)
-        If arr(i) = stringToBeFound Then
-            arrayIndex = i + 1
+        columnIndex = getColumnIndexByName(rawSheet, (arr(i)))
+        If columnIndex > 0 Then
+            copyColumnFromRawSheetToTargetSheet rawSheet, targetSheet, rowNum, columnIndex
+        End If
+    Next i
+End Function
+
+' This function is to copy a column from raw sheet to a new sheet and set the style of each column
+Public Function copyColumnFromRawSheetToTargetSheet(rawSheet As Worksheet, targetSheet As Worksheet, rowNum As Long, rawColumnIndex As Long)
+    Dim columnLength As Long
+    If WorksheetFunction.CountA(targetSheet.UsedRange) = 0 And ActiveSheet.Shapes.Count = 0 Then
+        columnLength = 0
+    Else
+        columnLength = targetSheet.Cells(1, Columns.Count).End(xlToLeft).Column
+    End If
+    
+    Dim newSheetIndex As Long
+    newSheetIndex = columnLength + 1
+    rawSheet.Columns(rawColumnIndex).Copy Destination:=targetSheet.Columns(newSheetIndex)
+    targetSheet.Columns(newSheetIndex).ColumnWidth = 15
+    targetSheet.Columns(newSheetIndex).HorizontalAlignment = xlCenter
+    targetSheet.Rows(1).Font.Bold = True
+End Function
+
+' This function is used to get the index of a cloumn in the sheet by its name
+Public Function getColumnIndexByName(sheet As Worksheet, name As String) As Long
+    Dim columnLength As Long
+    columnLength = sheet.Cells(1, Columns.Count).End(xlToLeft).Column
+    
+    For i = 1 To columnLength
+        If sheet.Cells(1, i) = name Then
+            getColumnIndexByName = i
             Exit Function
         End If
     Next i
-    arrayIndex = -1
-
+    getColumnIndexByName = -1
 End Function
 
-Public Function findElementColumnByValue(sheet As Worksheet, arr As Variant)
-    For Each element In arr
-        Dim r As range
-        Set r = sheet.Cells.Find(element)
-        Dim address As String
-        address = Split(r.address(External:=True), "$")(1)
-        MsgBox address
-    Next element
+Public Function deleteEmptyColumnsAndRows(sheet As Worksheet)
+Application.ScreenUpdating = False
+For i = sheet.Columns.Count To 1 Step -1
+    Set Rng = sheet.Cells(1, i).EntireColumn
+    If Application.WorksheetFunction.CountA(Rng) = 0 Then
+        Rng.Delete
+    End If
+Next
+
+For j = sheet.Rows.Count To 1 Step -1
+    Set Rng = sheet.Cells(j, 1).EntireRow
+    If Application.WorksheetFunction.CountA(Rng) = 0 Then
+        Rng.Delete
+    End If
+Next
+
+Application.ScreenUpdating = True
 End Function
 
-Public Function mergeCloumns(sheet As Worksheet, firstColumn As Long, secondColumn As Long, mergedColumn As Long)
-    Dim range As range
-    Set range = sheet.UsedRange
-    Dim rowNum As Long
-    rowNum = sheet.Cells(Rows.Count, 1).End(xlUp).row
-    sheet.Cells(1, mergedColumn) = "CounterParty"
-    Dim i As Long
-    For i = 2 To rowNum
-        If sheet.Cells(i, firstColumn) = "TCU" Then
-            sheet.Cells(i, mergedColumn) = sheet.Cells(i, secondColumn)
-        Else
-            sheet.Cells(i, mergedColumn) = sheet.Cells(i, firstColumn)
-        End If
-    Next i
-End Function
-
-
+Sub clearSheet1()
+    Dim sheet As Worksheet
+    Set sheet = Sheets("Sheet1")
+    sheet.Activate
+    sheet.Cells.ClearContents
+End Sub
+Sub clearSheet2()
+    Dim sheet As Worksheet
+    Set sheet = Sheets("Sheet2")
+    sheet.Activate
+    sheet.Cells.ClearContents
+End Sub
+Sub clearSheet3()
+    Dim sheet As Worksheet
+    Set sheet = Sheets("Sheet3")
+    sheet.Activate
+    sheet.Cells.ClearContents
+End Sub
+Sub clearSheet4()
+    Dim sheet As Worksheet
+    Set sheet = Sheets("Sheet4")
+    sheet.Activate
+    sheet.Cells.ClearContents
+    sheet.Cells.Interior.Color = xlNone
+End Sub
