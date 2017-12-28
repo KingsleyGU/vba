@@ -7,6 +7,7 @@ Sub CleanTradInfo()
     Set targetSheet = Sheets("Sheet3")
     targetSheet.Cells.ClearContents
     
+    deleteEmptyColumnsAndRows rawSheet
     ' A List of Columns that should be kept from raw file to newly generated file
     Dim usefulColumnList As Variant
     usefulColumnList = Array("Transaction Id", "Trade Id")
@@ -61,6 +62,8 @@ Sub getCounterPartyList()
     Set targetSheet = Sheets("Sheet4")
     
     targetSheet.Cells.ClearContents
+    deleteEmptyColumnsAndRows rawSheet
+    
     targetSheet.Cells.Interior.Color = xlNone
     copyColumnList = Array("Transaction Id", "Trade Id", "Keyword", "Trade Date", "Ccy", "Book")
     Dim payerIndex As Long
@@ -68,7 +71,7 @@ Sub getCounterPartyList()
     payerIndex = 0
     receiverIndex = 0
     
-    deleteEmptyColumnsAndRows rawSheet
+    
     Dim columnLength As Long
     columnLength = rawSheet.Cells(1, Columns.Count).End(xlToLeft).Column
     Dim rowNum As Long
@@ -232,22 +235,31 @@ Public Function getColumnIndexByName(sheet As Worksheet, name As String) As Long
 End Function
 
 Public Function deleteEmptyColumnsAndRows(sheet As Worksheet)
-Application.ScreenUpdating = False
-For i = sheet.Columns.Count To 1 Step -1
-    Set Rng = sheet.Cells(1, i).EntireColumn
-    If Application.WorksheetFunction.CountA(Rng) = 0 Then
-        Rng.Delete
-    End If
-Next
-
-For j = sheet.Rows.Count To 1 Step -1
-    Set Rng = sheet.Cells(j, 1).EntireRow
-    If Application.WorksheetFunction.CountA(Rng) = 0 Then
-        Rng.Delete
-    End If
-Next
-
-Application.ScreenUpdating = True
+    Dim columnLength As Long
+    columnLength = sheet.Columns.Count
+    Dim rowNum As Long
+    rowNum = sheet.Rows.Count
+    
+    Dim activeUsedRangeColumnLength As Long
+    Dim activeUsedRangeRowNum As Long
+    
+    Dim emptyColumnLength As Long
+    Dim emptyRowNum As Long
+    
+    Dim rng As range
+    
+    Set rng = sheet.UsedRange
+    'rng.Select
+    activeUsedRangeColumnLength = rng.Columns.Count
+    activeUsedRangeRowNum = rng.Rows.Count
+    
+    emptyColumnLength = columnLength - activeUsedRangeColumnLength
+    emptyRowNum = rowNum - activeUsedRangeRowNum
+    
+    'sheet.range(1, emptyRowNum).EntireRow.Delete
+    'sheet.range(1, emptyColumnLength).EntireColumn.Delete
+        
+    
 End Function
 
 Sub clearSheet1()
