@@ -1,0 +1,128 @@
+Sub main()
+
+    getUsers "COO", Array("G50893", "G19534", "G39796", "G42185", "G46154", "G47464", "G47780", "G53867")
+    getUsers "Signapore Trading", Array("G47570", "G49167", "G49273")
+    getUsers "Singnapore Sales", Array("N362960", "G46273", "N362110", "G50001", "G49027")
+    
+    getUsers "NY Trading", Array("G48292", "G14341", "G33613", "G18492")
+    getUsers "NY Sales", Array("G15389", "G50791", "N379290", "G17917")
+    getUsers "EUR Bonds", Array("G17290", "G17290", "G35707", "G44540", "G48265", "G50179", "G50433", "G53295")
+    
+    getUsers "FX Trading DK", Array("G09864", "G11334", "G18154", "G31840", "G40345", "G41850", "G42117", "G42217", "G4391", "G45024", "G46063")
+    getUsers "EUR Derivatives", Array("G30741", "G40896", "G48530", "G48797", "G52767")
+    getUsers "FX Forwards", Array("G21989", "G29648", "G31321", "G32667", "G53682")
+    getUsers "DKK&Basis", Array("G15373", "G32536", "G34685", "G42339", "G42984", "G43197", "G44354", "G47837", "G49517")
+    getUsers "Repo Trading", Array("G27042", "G35204", "G42803", "G47184")
+    getUsers "NoK Rates", Array("AC24330", "AC10127", "AC21394", "AC24326", "AC31499")
+    getUsers "SEK Rates", Array("N355670", "N360210", "N421820", "N437910", "N452850", "N465980", "P022980")
+    getUsers "Equity Finance Trading", Array("N379590", "N424510", "N477170", "N371980")
+    getUsers "Securities Borrowing&Lending", Array("N359170", "N443890", "N308520", "N436230")
+    getUsers "Equity Finance Sales", Array("N416430", "N458690", "G34800", "N496560", "N450380")
+    getUsers "Cash Equity Trading", Array("G35983", "G48370")
+    getUsers "Equity Derivatives Trading", Array("Z421404", "Z492299", "N453200", "Z092437", "N373690")
+    getUsers "Investment Products Trading", Array("N419090", "N430040", "N489540")
+    getUsers "Credit SEK", Array("N428690", "N496410")
+    getUsers "Credit NOK", Array("AC22982", "AC24170")
+    getUsers "Credit International", Array("G36784", "N387860", "G17425", "G53379", "G33042", "G50273")
+    getUsers "Non-Linear Trading", Array("G17709","Z069551","G18625","G41231","G48011","G48394","G49007","G49849")
+
+End Sub
+
+
+Sub COOUsers()
+    Dim WS As Worksheet
+    Set WS = Sheets("COO")
+    Dim userList As Variant
+    userList = Array("G50893", "G19534", "G39796", "G42185", "G46154", "G47464", "G47780", "G53867")
+    getUsers "COO", userList
+
+End Sub
+
+Sub SignaporeTradingUsers()
+    Dim WS As Worksheet
+    Set WS = Sheets("Signapore Trading")
+    Dim userList As Variant
+    userList = Array("G47570", "G49167", "G49273")
+    Dim iBottomRow As Long
+    iBottomRow = WS.Range("A" & Range("A" & WS.Rows.Count).End(xlUp).Row).Row
+    For iRow = iBottomRow To 2 Step -1
+        If IsError(Application.Match(WS.Cells(iRow, 5), userList, False)) Then
+            WS.Rows(iRow).EntireRow.Delete
+        End If
+    Next
+End Sub
+
+Sub SignaporeSalesUsers()
+    Dim WS As Worksheet
+    Set WS = Sheets("Signapore Sales")
+    Dim userList As Variant
+    userList = Array("N362960", "G46273", "N362110", "G50001", "G49027")
+    Dim iBottomRow As Long
+    iBottomRow = WS.Range("A" & Range("A" & WS.Rows.Count).End(xlUp).Row).Row
+    For iRow = iBottomRow To 2 Step -1
+        If IsError(Application.Match(WS.Cells(iRow, 5), userList, False)) Then
+            WS.Rows(iRow).EntireRow.Delete
+        End If
+    Next
+End Sub
+
+Sub NYTradingUsers()
+    Dim WS As Worksheet
+    Set WS = Sheets("NY Trading")
+    Dim userList As Variant
+    userList = Array("G48292", "G14341", "G33613", "G18492")
+    Dim iBottomRow As Long
+    iBottomRow = WS.Range("A" & Range("A" & WS.Rows.Count).End(xlUp).Row).Row
+    For iRow = iBottomRow To 2 Step -1
+        If IsError(Application.Match(WS.Cells(iRow, 5), userList, False)) Then
+            WS.Rows(iRow).EntireRow.Delete
+        End If
+    Next
+End Sub
+
+Sub NYSalesUsers()
+    Dim WS As Worksheet
+    Set WS = Sheets("NY Sales")
+    Dim userList As Variant
+    userList = Array("G15389", "G50791", "N379290", "G17917")
+    Dim iBottomRow As Long
+    iBottomRow = WS.Range("A" & Range("A" & WS.Rows.Count).End(xlUp).Row).Row
+    For iRow = iBottomRow To 2 Step -1
+        If IsError(Application.Match(WS.Cells(iRow, 5), userList, False)) Then
+            WS.Rows(iRow).EntireRow.Delete
+        End If
+    Next
+End Sub
+
+Sub EURBondsUsers()
+    Dim WS As Worksheet
+    Set WS = Sheets("EUR Bonds")
+    Dim userList As Variant
+    userList = Array("G17290", "G35707", "G44540", "G48265", "G50179", "G50433", "G53295")
+    Dim iBottomRow As Long
+    iBottomRow = WS.Range("A" & Range("A" & WS.Rows.Count).End(xlUp).Row).Row
+    For iRow = iBottomRow To 2 Step -1
+        If IsError(Application.Match(WS.Cells(iRow, 5), userList, False)) Then
+            WS.Rows(iRow).EntireRow.Delete
+        End If
+    Next
+End Sub
+
+Function getUsers(sheetName As String, userList As Variant)
+    Dim WS As Worksheet
+    Set WS = Sheets.Add
+    WS.Name = sheetName
+    'Set WS = Sheets(sheetName)
+    WS.Cells.ClearContents
+    Sheets("RawData").UsedRange.Copy
+    WS.Select
+    WS.Range("A1").Select
+    WS.Paste
+    Dim iBottomRow As Long
+    iBottomRow = WS.Range("A" & Range("A" & WS.Rows.Count).End(xlUp).Row).Row
+    For iRow = iBottomRow To 2 Step -1
+        If IsError(Application.Match(WS.Cells(iRow, 5), userList, False)) Then
+            WS.Rows(iRow).EntireRow.Delete
+        End If
+    Next
+End Function
