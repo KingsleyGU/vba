@@ -1,0 +1,48 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using Microsoft.Office.Tools.Ribbon;
+using System.Data.OracleClient;
+using System.Data;
+using Microsoft.Office.Interop.Excel;
+
+namespace ExcelAddIn1
+{
+    public partial class Ribbon1
+    {
+        private void Ribbon1_Load(object sender, RibbonUIEventArgs e)
+        {
+
+        }
+
+        private void button1_Click(object sender, RibbonControlEventArgs e)
+        {
+            System.Data.DataTable dataTable = new System.Data.DataTable();
+            String connectionString = "DATA SOURCE=TRMP.world;PERSIST SECURITY INFO=True;USER ID=G50796;PASSWORD=Gm123521";
+            String queryString = "SELECT area, cast((ISIN)as varchar(12)) as ISIN, Portfolio, 'CALYPSO' as INSTRUMENT_TYPE, case when bucket_name = 'ACC_INT_RECALC' then 'Accrued Interest' else bucket_name end as bucket_name, round(pl_eur, 4 ) FROM FCUSER.PLX_T_CAL_BOND_KRO_DECOMP unpivot (PL_EUR for BUCKET_name IN (TGL_PL, ACC_INT_RECALC, INT_RECALC, COC_RECALC, REPO_TIME, BALDER_HAZARD_CURVE, BOND_MTM, TIME, MTM_RECALC, BALDER_RECOVERY_RATE, INFINITY_CCS_SPREAD, INFINITY_DISC, INFINITY_FWD, INFINITY_LIBOR, REPO_INFINITY_LIBOR_REF, FX_RECALC, NEW_RECALC, CASH, MATURING, REPO_CASH, REPO_MATURING, REPO_NEW, NON_LINEAR, UPD_RECALC, MAT_RECALC)) WHERE AREA = 'Investment Grade' AND REPORT_DATE between '28-Dec-17' AND '28-Dec-17' and pl_eur between -10 AND 10";
+            using (OracleConnection connection = new OracleConnection(connectionString))
+            {
+                OracleCommand command = new OracleCommand(queryString, connection);
+                connection.Open();
+                OracleDataAdapter adapter = new OracleDataAdapter(command);
+
+                adapter.Fill(dataTable);
+                connection.Close();
+                adapter.Dispose();
+            }
+            Workbook workBook = Globals.ThisAddIn.Application.ActiveWorkbook;
+            Worksheet worksheet = workBook.Sheets["Data"];
+            worksheet.Activate();
+            //workBook.Sheets.Add(dataTable, "data1");
+            for (int i = 0; i < dataTable.Rows.Count; i++)
+            {
+                for (int j = 0; j < dataTable.Columns.Count; j++)
+                {
+                    worksheet.Cells[i + 1, j + 1] = dataTable.Rows[i][j].ToString();
+                }
+            }
+
+        }
+    }
+}
